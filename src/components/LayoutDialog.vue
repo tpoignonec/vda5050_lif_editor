@@ -21,6 +21,7 @@ import {
 import { LayoutController } from "@/controllers/layout.controller";
 import { SideBarController } from "@/controllers/sideBar.controller";
 import { Layout } from "@/types/layout";
+import { yaml } from 'js-yaml';
 
 const props = defineProps({
   tools: {
