@@ -21,7 +21,7 @@ import {
 import { LayoutController } from "@/controllers/layout.controller";
 import { SideBarController } from "@/controllers/sideBar.controller";
 import { Layout } from "@/types/layout";
-import { yaml } from 'js-yaml';
+import { load } from 'js-yaml';
 
 const props = defineProps({
   tools: {
@@ -83,7 +83,7 @@ function handleImageUpload(event: Event) {
   if (input.files && input.files[0]) {
     const file = input.files[0];
     const reader = new FileReader();
-    
+
     reader.onload = (e) => {
       if (e.target?.result) {
         // get real width and height
@@ -93,10 +93,10 @@ function handleImageUpload(event: Event) {
           const imageHeight = map_image.naturalHeight;
           
           // populate layout
-        layout.backgroundImage = {
+          layout.backgroundImage = {
             image: map_image.src,
-          x: layout.backgroundImage?.x || 0,
-          y: layout.backgroundImage?.y || 0,
+            x: layout.backgroundImage?.x || 0,
+            y: layout.backgroundImage?.y || 0,
             width: layout.backgroundImage?.width || imageWidth,
             height: layout.backgroundImage?.height || imageHeight,
             natural_width: imageWidth,
@@ -108,10 +108,42 @@ function handleImageUpload(event: Event) {
         map_image.src = e.target.result as string;
       }
     };
-    
     reader.readAsDataURL(file);
   }
 }
+
+function handleMetadataUpload(event: Event) {
+  const input = event.target as HTMLInputElement;
+  if (input.files && input.files[0]) {
+    const metadata_file = input.files[0];
+    if (metadata_file) {
+      console.log("yaml file: ", metadata_file);
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const yamlText = reader.result as string;
+          const parsedData = load(yamlText);
+          console.log("map metadata: ", parsedData);
+          // Extract resolution and origin from the parsed data
+          if (parsedData?.resolution && parsedData?.origin) {
+            layout.backgroundImage.x = parsedData.origin[0]
+            layout.backgroundImage.y = parsedData.origin[1]
+            layout.backgroundImage.width = parsedData.resolution * layout.backgroundImage.natural_width;
+            layout.backgroundImage.height = parsedData.resolution * layout.backgroundImage.natural_height;    
+          } else {
+            console.error("Failed to extract resolution and origin from map metadata.");
+          }    
+
+        } catch (error) {
+          console.error("Error parsing YAML map metadata file:", error);
+        }
+        console.log("layout.backgroundImage: ", layout.backgroundImage);
+      };
+      reader.readAsText(metadata_file);
+    };
+  };
+}
+
 </script>
 
 <template>
@@ -254,8 +286,7 @@ function handleImageUpload(event: Event) {
               v-model="layout.backgroundImage.x"
               auto-focus
             />
-          </div>
-          
+          </div>          
           <div class="grid gap-2">
             <HoverCard :open-delay="2000">
               <HoverCardTrigger>
